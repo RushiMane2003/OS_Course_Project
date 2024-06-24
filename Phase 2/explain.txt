@@ -1,0 +1,31 @@
+SI  = 1 on GD
+    = 2 on PD
+    = 3 on H
+
+TI  = 2 on Time Limit Exceeded ttl=ttc
+
+PI  = 1 Operation Error
+    = 2 Operand Error
+    = 3 Page Fault
+
+
+
+EM Error
+0 No Error
+1 Out of Data
+2 Line Limit Exceeded
+3 Time Limit Exceeded
+4 Operation Code Error
+5 Operand Error
+6 Invalid Page Fault
+
+Error Message
+Line 1: Values of IC, IR, TTC, TTL, LLC, 
+Line 2: Program terminated abnormally because of _____ error
+
+
+GD and SR instructions will take 2 units of time: because for both 
+instructions we get page fault. Hence,
+1 unit: to handle page fault
+1 unit: to execute the instruction
+• All other instructions will take 1 unit of time

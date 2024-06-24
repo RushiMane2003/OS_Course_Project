@@ -1,0 +1,5 @@
+HELLO WORLD!                            
+
+
+IC : 1	IR : GX10	TTC : 0	TTL : 7	LLC : 0	TLL : 3
+Program terminated abnormally because of Operation error
