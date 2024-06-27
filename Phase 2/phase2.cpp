@@ -40,10 +40,10 @@ class OS{
         void Execute();         //Execute function to start the execution of the instructions
         void clearBuffer();     //Clear buffer
         void printMemory();     //Print the memory content
-        int Add_map(int VA);
+        int Add_map(int VA);    //Maps Real Address and Virtual Address
         int allocate();         //Allocates a block to a Process
-        void check();
-        void line(string error);
+        void check();           //Checks if everthing is in control
+        void line(string error);//Prints the error in output.txt
 
         fstream infile;         //input file
         fstream outfile;        //output file        
@@ -64,6 +64,7 @@ int OS :: Add_map(int VA){
     int offset = VA % 10; // identifies on which line of that page the data is present
     int address = 0;
     if(M[PTR + frame][0]=='*'){ // if frame is not filled a new block is allocated and add it to page table
+        cout << "Page Fault Occured" << endl;
         int block = allocate();
         M[PTR + frame][0] = block / 10 + '0'; // store tens digit in page table
         M[PTR + frame][1] = block % 10 + '0'; // store units digit in page table 
@@ -85,8 +86,7 @@ void OS :: clearBuffer(){ // resets the buffer to \0
 void OS :: printMemory(){
     printf("\n\n");
     for(int i = 0; i<50; i++){ 
-        printf("M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c",
-        i,M[i][0],M[i][1],M[i][2],M[i][3],i+50,M[i+50][0],M[i+50][1],M[i+50][2],M[i+50][3],i+100,M[i+100][0],M[i+100][1],M[i+100][2],M[i+100][3],i+150,M[i+150][0],M[i+150][1],M[i+150][2],M[i+150][3],i+200,M[i+200][0],M[i+200][1],M[i+200][2],M[i+200][3],i+250,M[i+250][0],M[i+250][1],M[i+250][2],M[i+250][3]);
+        printf("M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c\t| M[%d]\t%c%c%c%c", i,M[i][0],M[i][1],M[i][2],M[i][3],i+50,M[i+50][0],M[i+50][1],M[i+50][2],M[i+50][3],i+100,M[i+100][0],M[i+100][1],M[i+100][2],M[i+100][3],i+150,M[i+150][0],M[i+150][1],M[i+150][2],M[i+150][3],i+200,M[i+200][0],M[i+200][1],M[i+200][2],M[i+200][3],i+250,M[i+250][0],M[i+250][1],M[i+250][2],M[i+250][3]);
         cout<<endl;
     } 
 }
@@ -152,7 +152,7 @@ void OS :: load(){ // Defining load function of OS class
                 pcb.TLL = (pcb.TLL * 10) + (buffer[i] - '0'); // copies total line limit             
         }
         else if(buffer[0] == '$' && buffer[1] == 'D' && buffer[2] == 'T' && buffer[3] == 'A'){ // start of Data Card   
-            IC = 00; // as program is stored in 1st page 1st line 
+            IC = 00; // as program is stored from 1st page 1st line 
             DataCardCount++, Execute();
         } 
         else if(buffer[0] == '$' && buffer[1] == 'E' && buffer[2] == 'N' && buffer[3] == 'D'){ // end of Job now start once again
@@ -195,26 +195,28 @@ void OS :: Execute(){ // Defining Execute function of OS class
         }
 
         else if (IR[0] == 'L' && IR[1] == 'R'){ // Load Register (To copy data at given address to genral purpose registor)
-            pcb.TTC++, check(); // increments the total time count
+            pcb.TTC++, check(); // increments the total time count and checks
             int address = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
             for(int i = 0; i < 4; i++) // loads into genral purpose register
                 R[i] = M[address][i];
         }
 
         else if (IR[0] == 'S' && IR[1] == 'R'){ // Store Register (To copy data from genral purpose registor to the given address)
-            pcb.TTC += 2, check();
-            int address = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
+            pcb.TTC += 2; // 1 to handel page fault and 1 to execute the instruction 
+            check(); // checks if everthing is in control
+            VA = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
+            RA = Add_map(VA);
             for(int i = 0; i < 4; i++)
-                M[address][i] = R[i];
+                M[RA][i] = R[i];
         }
 
         else if (IR[0] == 'C' && IR[1] == 'R'){ // Compare Register
-            pcb.TTC++, check();
-            int address = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
+            pcb.TTC++, check(); // increments the total time count and checks
+            int VA = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
+            RA = Add_map(VA);
             int flag = 0;
             for(int i = 0; i < 4; i++) // compares data in register and memory 
-                if(M[address][i] != R[i])
-                {
+                if(M[RA][i] != R[i]){
                     flag = 1;
                     break; 
                 }
@@ -222,8 +224,8 @@ void OS :: Execute(){ // Defining Execute function of OS class
         }
 
         else if (IR[0] == 'B' && IR[1] == 'T'){ // Branch on Toggle{
-            if(C == true)
-            {        
+            pcb.TTC++, check(); // increments the total time count and checks
+            if(C == true){        
                 int address = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
                 IC = address; // sets the IC to given address
             }
@@ -236,17 +238,13 @@ void OS :: Execute(){ // Defining Execute function of OS class
 }
 
 void OS :: MOS(){ // Defining MOS function of OS class          
-    if (TI == 0){
+    if (TI == 0){ // no timer interrupt so normal
         if(SI == 1) read();
         else if (SI == 2) write();
         else if (SI == 3) terminate();
         else if (PI == 1) line("Operation"),terminate();
         else if (PI == 2) line("Oprand"), terminate();
-        else if (PI == 3){
-            int block = allocate();
-            M[(PTR + (RA / 10))][0] = block / 10 + '0';
-            M[(PTR + (RA / 10))][1] = block % 10 + '0';
-        }
+        else if (PI == 3) cout << "Page fault Occured" << endl;
     }
     else if (TI == 2) {
         if (SI == 1) line("Time Limit Exceeded"),outfile,terminate();
@@ -257,7 +255,8 @@ void OS :: MOS(){ // Defining MOS function of OS class
 }
 
 void OS :: read(){ // Defining read function of OS class
-    pcb.TTC += 2, check(); // increments total time count by 2 (1 for page fault and 1 for exectution) 
+    pcb.TTC += 2; // increments total time count by 2 (1 for page fault and 1 for exectution) 
+    check(); // Checks whether everything is undercontrol
     clearBuffer();
     infile.getline(buffer,41); // copies 41 characters or a line (whichever is small) and pastes it in buffer (41 to adjust \0 at end of the string)
     int buffptr = 0; // buffer pointer
@@ -272,7 +271,7 @@ void OS :: read(){ // Defining read function of OS class
 }
 
 void OS :: write(){ // Defining write function of OS class
-    pcb.TTC += 2, pcb.LLC++, check(); // increments the total time count and total line count and checks
+    pcb.TTC++, pcb.LLC++, check(); // increments the total time count and total line count and checks
     int VA = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
     RA = Add_map(VA); // finds real address with the help of virtual address
     for (int i = 0; i < 10; i++){ // write the whole block from the Memory to output.txt in a single line
@@ -290,6 +289,7 @@ void OS :: terminate(){ outfile<<"\n\n"; } // leaves 2 lines at end of each job
 
 int main(){ 
     OS os;  //creating the instance of object of Os class
+    
     os.infile.open("input.txt", ios::in);   //input file
     os.outfile.open("output.txt", ios::out);  //output file
     srand(time(NULL));
