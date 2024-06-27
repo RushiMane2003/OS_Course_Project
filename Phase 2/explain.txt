@@ -1,3 +1,5 @@
+BASIC BACKGROUND
+
 SI  = 1 on GD
     = 2 on PD
     = 3 on H
@@ -7,8 +9,6 @@ TI  = 2 on Time Limit Exceeded ttl=ttc
 PI  = 1 Operation Error
     = 2 Operand Error
     = 3 Page Fault
-
-
 
 EM Error
 0 No Error
@@ -22,7 +22,6 @@ EM Error
 Error Message
 Line 1: Values of IC, IR, TTC, TTL, LLC, 
 Line 2: Program terminated abnormally because of _____ error
-
 
 GD and SR instructions will take 2 units of time: because for both 
 instructions we get page fault. Hence,
