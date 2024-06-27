@@ -1,5 +1,6 @@
 #include<iostream>
 #include<fstream>
+#include <ctime>
 using namespace std;
 
 struct PCB{
@@ -8,8 +9,7 @@ struct PCB{
     int TLL = 0; // Total Line Limit
     int TTC = 0; // Total Time Count
     int LLC = 0; // Line Limit Count
-};
-struct PCB pcb;
+}pcb;
 
 class OS{
     //declaring the variables -----------------------------------------------------------------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ class OS{
     int TI;                     // Timer Interrupt
     int DataCardCount;          // Number of Data Card
     int NoOfGD;                 // Number of GD instructions 
-    int flag[30];         // To keep track of occupied blocks in memory           
+    int flag[30];               // To keep track of occupied blocks in memory           
     int PTR;                    // Pointer to page table
 
     //declaring functions -----------------------------------------------------------------------------------------------------------------------------------------
@@ -41,37 +41,13 @@ class OS{
         void clearBuffer();     //Clear buffer
         void printMemory();     //Print the memory content
         int Add_map(int VA);
-        int allocate();        //Allocates a block to a Process
+        int allocate();         //Allocates a block to a Process
         void check();
         void line(string error);
 
         fstream infile;         //input file
         fstream outfile;        //output file        
 };
-
-void OS::INIT(){ // Defining INIT function of OS class
-    cout<< "Initial"<<endl;
-    for(int i = 0; i < 300; i++) //initializes the memory to \0
-        for(int j = 0; j < 4; j++)
-            M[i][j] = '\0'; 
-    for(int i = 0; i < 4; i++) IR[i] = '\0'; //initializes the Instruction register to \0
-    for(int i = 0; i < 4; i++) R[i] = '\0'; //initializes the general purpose register to \0
-    C = false; //initializes toggle resistor to false
-    PTR = allocate()*10 ; // selecting a random block and make it page table
-    for(int i = PTR; i < PTR + 10; i++)
-        for(int j = 0; j < 4; j++)
-            M[i][j] = '*'; // to denote page table block
-    for(int i = 0; i < 30; i++) flag[i] = 0; // intializes flag pointer to 0;
-    
-    DataCardCount = 0; 
-    SI = 0; // initializes system interrupt to 0
-    TI = 0; // initializes timer interrupt to 0
-    PI = 0; // initializes program interrupt to 0
-    pcb.TTC = 0; // initialize time count to 0
-    pcb.LLC = 0; // initialize line count to 0
-    pcb.TTL = 0; // initialize time limit to 0
-    pcb.TLL = 0; // initialize line limit to 0
-}
 
 void OS :: line(string error) { // outfile the error lines in given format 
     outfile << "IC : " << IC << "\t";
@@ -115,13 +91,13 @@ void OS :: printMemory(){
     } 
 }
 
-int OS :: allocate(){ // allocates a new unalloctaed block and returns its block number
-    int block = (rand() % 30);
-    if(flag[block] != 1){ // checks if the block is not pre-occupied
-        flag[block] = 1; //marks the block occupied
-        return block;
-    }
-    else return allocate(); // recurrsively call allocate()
+int OS::allocate() {
+    int block;
+    do {
+        block = rand() % 30; //selects a random block between 0 to 29
+    } while (flag[block] == 1); // runs untill a empty block is found
+    flag[block] = 1; //marks the block allocated 
+    return block; // returns the block
 }
 
 void OS :: check(){ // checks if everthing is in control
@@ -131,13 +107,37 @@ void OS :: check(){ // checks if everthing is in control
     if(DataCardCount < NoOfGD) line("Out of Data"), terminate(), exit(0);
 }
 
+void OS::INIT(){ // Defining INIT function of OS class
+    for(int i = 0; i < 300; i++) //initializes the memory to \0
+        for(int j = 0; j < 4; j++)
+            M[i][j] = '\0'; 
+    for(int i = 0; i < 4; i++) IR[i] = '\0'; //initializes the Instruction register to \0
+    for(int i = 0; i < 4; i++) R[i] = '\0'; //initializes the general purpose register to \0
+    C = false; //initializes toggle resistor to false
+    for(int i = 0; i < 30; i++) flag[i] = 0; // intializes flag pointer to 0;
+    PTR = allocate()*10 ; // selecting a random block and make it page table
+    for(int i = PTR; i < PTR + 10; i++)
+        for(int j = 0; j < 4; j++)
+            M[i][j] = '*'; // to denote page table block
+    
+    DataCardCount = 0; 
+    SI = 0; // initializes system interrupt to 0
+    TI = 0; // initializes timer interrupt to 0
+    PI = 0; // initializes program interrupt to 0
+    pcb.TTC = 0; // initialize time count to 0
+    pcb.LLC = 0; // initialize line count to 0
+    pcb.TTL = 0; // initialize time limit to 0
+    pcb.TLL = 0; // initialize line limit to 0
+    NoOfGD = 0; // initializes
+}
+
 void OS :: load(){ // Defining load function of OS class
-    printf("\nReading a card\n");
     int ptr;
 
     do{ //while file does not end
         clearBuffer();
         infile.getline(buffer,41); // copies 41 characters or a line (whichever is small) and pastes it in buffer (41 to adjust \0 at end of the string)
+        if(buffer[0] =='\0' || buffer[0] == '\n') continue; // if blank line(s) is/are incountered
         for(int i=0; i<40; i++) cout<<buffer[i]; // prints what it reads from input.txt 
         printf("\n");
 
@@ -259,8 +259,7 @@ void OS :: MOS(){ // Defining MOS function of OS class
 void OS :: read(){ // Defining read function of OS class
     pcb.TTC += 2, check(); // increments total time count by 2 (1 for page fault and 1 for exectution) 
     clearBuffer();
-    infile.getline(buffer,41); //reads data from file 
-
+    infile.getline(buffer,41); // copies 41 characters or a line (whichever is small) and pastes it in buffer (41 to adjust \0 at end of the string)
     int buffptr = 0; // buffer pointer
     VA = ((IR[2] - '0') * 10) + (IR[3]- '0'); // Address is stored in IR[2] & IR[3] in char format so to convert it into int substracting ASCII value of 0 and making it a decimal number 
     RA = Add_map(VA)*10; // finds the real address of with the help of given address
@@ -293,6 +292,7 @@ int main(){
     OS os;  //creating the instance of object of Os class
     os.infile.open("input.txt", ios::in);   //input file
     os.outfile.open("output.txt", ios::out);  //output file
+    srand(time(NULL));
 
     if(!os.infile) printf("Failure"); //if no input.txt file exists then exits with failure message
     else printf("Success"), os.load(); // if input.txt file exists then enters load function  
